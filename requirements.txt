@@ -1,0 +1,25 @@
+# Web framework
+fastapi
+uvicorn[standard]
+
+# Database
+google-cloud-firestore
+firebase-admin
+
+# For password hashing
+passlib[bcrypt] # bcrypt hashing algoritması için
+
+# For Google Cloud Storage
+google-cloud-storage
+
+# Image processing (if your remove-background endpoint is staying in Python)
+rembg
+onnxruntime
+Pillow
+numpy
+scikit-image
+scipy
+python-multipart
+email-validator
+loguru
+python-jose
