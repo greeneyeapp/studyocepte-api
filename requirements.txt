@@ -1,26 +1,64 @@
 # Web framework
-fastapi
-uvicorn[standard]
+fastapi>=0.104.1
+uvicorn[standard]>=0.24.0
 
 # Database
-google-cloud-firestore
-firebase-admin
+google-cloud-firestore>=2.13.1
+firebase-admin>=6.2.0
 
-# For password hashing
-passlib[bcrypt] # bcrypt hashing algoritması için
+# Authentication & Security
+passlib[bcrypt]>=1.7.4  # Password hashing
+python-jose[cryptography]>=3.3.0  # JWT tokens
+python-multipart>=0.0.6  # File uploads
+email-validator>=2.1.0
 
-# For Google Cloud Storage
-google-cloud-storage
+# Google Cloud Services
+google-cloud-storage>=2.10.0
 
-# Image processing
-rembg
-onnxruntime
-Pillow
-numpy
-scikit-image
-scipy
-python-multipart
-email-validator
-loguru
-python-jose
-requests  # For downloading images from URLs
+# Image processing & Computer Vision
+rembg>=2.0.50
+onnxruntime>=1.16.3
+Pillow>=10.1.0
+numpy>=1.24.3
+scikit-image>=0.22.0
+scipy>=1.11.4
+opencv-python>=4.8.1.78  # Advanced image processing
+
+# Security & Rate Limiting
+python-magic>=0.4.27  # File type detection
+slowapi>=0.1.9  # Rate limiting middleware
+cryptography>=41.0.7  # Enhanced security
+
+# Caching & Performance
+redis>=5.0.1
+aioredis>=2.0.1
+cachetools>=5.3.2
+
+# Background Tasks & Queue Management
+celery>=5.3.4
+celery[redis]>=5.3.4
+
+# Monitoring & Logging
+loguru>=0.7.2
+prometheus-client>=0.19.0
+
+# HTTP & Networking
+requests>=2.31.0  # For downloading images from URLs
+httpx>=0.25.2  # Async HTTP client
+aiofiles>=23.2.1  # Async file operations
+
+# Data validation & serialization
+pydantic>=2.5.0
+pydantic-settings>=2.1.0
+
+# Development & Testing (optional, can be moved to requirements-dev.txt)
+pytest>=7.4.3
+pytest-asyncio>=0.21.1
+black>=23.11.0
+flake8>=6.1.0
+mypy>=1.7.1
+
+# Optional: Advanced features
+# python-dotenv>=1.0.0  # If you want to use .env files instead of system env vars
+# sentry-sdk[fastapi]>=1.38.0  # Error tracking
+# structlog>=23.2.0  # Structured logging
