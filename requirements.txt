@@ -12,7 +12,7 @@ passlib[bcrypt] # bcrypt hashing algoritması için
 # For Google Cloud Storage
 google-cloud-storage
 
-# Image processing (if your remove-background endpoint is staying in Python)
+# Image processing
 rembg
 onnxruntime
 Pillow
@@ -23,3 +23,4 @@ python-multipart
 email-validator
 loguru
 python-jose
+requests  # For downloading images from URLs

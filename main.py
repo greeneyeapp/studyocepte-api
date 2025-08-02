@@ -13,16 +13,16 @@ from core.firebase_config import db
 from core.config import settings
 
 # Route dosyalarını import edin
-from routes import auth, projects, image_processing, backgrounds
+from routes import auth, products, photos, image_processing, backgrounds
 
 # Loglama yapılandırması
 logger.add("file.log", rotation="500 MB", compression="zip", format="{time} {level} {message}", serialize=True, level="INFO")
 logger.info("FastAPI uygulaması başlıyor...")
 
 app = FastAPI(
-    title="Stüdyo Cepte API - Nihai İşlem Hattı v2",
-    description="Çoklu maske, akıllı temizleme ve kenar yumuşatma ile en yüksek kalitede sonuç üretir.",
-    version="8.0.0"
+    title="Stüdyo Cepte API - Product/Photo Yapısı",
+    description="Yeni yapı: Ürünler ve fotoğraflar ayrı yönetilir. Çoklu fotoğraf desteği.",
+    version="9.0.0"
 )
 
 # CORS ayarları
@@ -63,14 +63,25 @@ async def global_exception_handler(request, exc: Exception):
 
 # Router'ları ana uygulamaya dahil et
 app.include_router(auth.router, prefix="/auth", tags=["Auth"])
-app.include_router(projects.router, prefix="/projects", tags=["Projects"])
+app.include_router(products.router, prefix="/products", tags=["Products"])
+app.include_router(photos.router, prefix="/photos", tags=["Photos"])
 app.include_router(image_processing.router, prefix="/image", tags=["Image Processing"])
 app.include_router(backgrounds.router, prefix="/backgrounds", tags=["Backgrounds"])
 
 @app.get("/")
 def read_root():
     logger.info("Ana kök route'a istek geldi.")
-    return {"message": "Stüdyo Cepte API v8'e hoş geldiniz! Nihai İşlem Hattı aktif."}
+    return {
+        "message": "Stüdyo Cepte API v9'a hoş geldiniz! Product/Photo yapısı aktif.",
+        "version": "9.0.0",
+        "endpoints": {
+            "auth": "/auth - Kullanıcı işlemleri",
+            "products": "/products - Ürün ve fotoğraf yönetimi", 
+            "backgrounds": "/backgrounds - Editör arka planları",
+            "image": "/image - Görüntü işleme araçları",
+            "docs": "/docs - API dokümantasyonu"
+        }
+    }
 
 if __name__ == "__main__":
     service_account_path = "serviceAccountKey.json"
@@ -82,7 +93,7 @@ if __name__ == "__main__":
     if settings.SECRET_KEY == "supersecretkey":
         logger.warning("SECRET_KEY ortam değişkeni ayarlanmamış veya varsayılan değerde. Üretim ortamında bunu güvenli bir değerle değiştirin!")
     
-    if settings.STORAGE_BUCKET_NAME == "your-firebase-storage-bucket-name.appspot.com":
-        logger.warning("STORAGE_BUCKET_NAME ortam değişkeni ayarlanmamış veya varsayılan değerde. Lütfen .env dosyanızda kova adınızı belirtin!")
+    if not settings.STORAGE_BUCKET_NAME:
+        logger.warning("STORAGE_BUCKET_NAME ortam değişkeni ayarlanmamış. Lütfen .env dosyanızda kova adınızı belirtin!")
 
     uvicorn.run(app, host="0.0.0.0", port=8000)
