@@ -1,9 +1,14 @@
+# routes/caching.py - Redis Cache Implementation
+from fastapi import APIRouter
 from typing import Any, Optional
 import json
 import hashlib
 from datetime import timedelta
 import redis
+from loguru import logger
 from core.config import settings
+
+router = APIRouter()  # Bu satır eksikti
 
 class CacheService:
     """Redis-based caching service."""
@@ -16,9 +21,8 @@ class CacheService:
     def _init_redis(self):
         """Initialize Redis connection if available."""
         try:
-            redis_url = settings.REDIS_URL if hasattr(settings, 'REDIS_URL') else None
-            if redis_url:
-                self.redis_client = redis.from_url(redis_url, decode_responses=True)
+            if hasattr(settings, 'REDIS_URL') and settings.REDIS_URL:
+                self.redis_client = redis.from_url(settings.REDIS_URL, decode_responses=True)
                 # Test connection
                 self.redis_client.ping()
                 self.enabled = True
@@ -81,7 +85,24 @@ class CacheService:
                 self.redis_client.delete(*keys)
         except Exception as e:
             logger.warning(f"Cache clear pattern failed: {e}")
+    
+    def get_stats(self) -> dict:
+        """Get cache statistics."""
+        if not self.enabled:
+            return {"enabled": False}
+        
+        try:
+            info = self.redis_client.info()
+            return {
+                "enabled": True,
+                "connected_clients": info.get("connected_clients", 0),
+                "used_memory": info.get("used_memory_human", "0B"),
+                "keyspace_hits": info.get("keyspace_hits", 0),
+                "keyspace_misses": info.get("keyspace_misses", 0),
+            }
+        except Exception as e:
+            logger.warning(f"Cache stats failed: {e}")
+            return {"enabled": True, "error": str(e)}
 
 # Global cache instance
 cache = CacheService()
-

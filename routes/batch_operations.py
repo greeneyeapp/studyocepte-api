@@ -1,8 +1,13 @@
 # routes/batch_operations.py - Batch Processing
-from fastapi import APIRouter, BackgroundTasks, Depends
+from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException
 from typing import List
 from enum import Enum
 import asyncio
+from datetime import datetime, timedelta
+from loguru import logger
+
+from core.models import UserData
+from core.dependencies import get_current_user
 
 router = APIRouter()
 
@@ -94,18 +99,21 @@ class BatchOperation:
     
     async def _process_single_photo(self, operation_type: BatchOperationType, photo_id: str, params: dict):
         """Process a single photo in batch operation."""
+        # Simulate processing time
+        await asyncio.sleep(2)
+        
         if operation_type == BatchOperationType.REMOVE_BACKGROUND:
             # Implement background removal
-            pass
+            logger.info(f"Processing background removal for photo {photo_id}")
         elif operation_type == BatchOperationType.APPLY_FILTER:
             # Implement filter application
-            pass
+            logger.info(f"Applying filter to photo {photo_id}")
         elif operation_type == BatchOperationType.RESIZE:
             # Implement resizing
-            pass
+            logger.info(f"Resizing photo {photo_id}")
         elif operation_type == BatchOperationType.EXPORT:
             # Implement export
-            pass
+            logger.info(f"Exporting photo {photo_id}")
     
     def get_operation_status(self, batch_id: str) -> dict:
         """Get status of batch operation."""
@@ -121,7 +129,7 @@ class BatchOperation:
 # Global batch manager
 batch_manager = BatchOperation()
 
-@router.post("/batch/start")
+@router.post("/start")
 async def start_batch_operation(
     operation_type: BatchOperationType,
     photo_ids: List[str],
@@ -148,7 +156,7 @@ async def start_batch_operation(
         logger.error(f"Failed to start batch operation: {e}")
         raise HTTPException(status_code=500, detail="Batch operation could not be started.")
 
-@router.get("/batch/{batch_id}/status")
+@router.get("/{batch_id}/status")
 async def get_batch_status(
     batch_id: str,
     current_user: UserData = Depends(get_current_user)
@@ -165,7 +173,7 @@ async def get_batch_status(
     
     return status
 
-@router.delete("/batch/{batch_id}")
+@router.delete("/{batch_id}")
 async def cancel_batch_operation(
     batch_id: str,
     current_user: UserData = Depends(get_current_user)
