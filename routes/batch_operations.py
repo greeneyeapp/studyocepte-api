@@ -3,7 +3,7 @@ from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException
 from typing import List
 from enum import Enum
 import asyncio
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta  # Eksik import eklendi
 from loguru import logger
 
 from core.models import UserData

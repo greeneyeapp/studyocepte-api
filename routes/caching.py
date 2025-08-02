@@ -1,5 +1,5 @@
-# routes/caching.py - Redis Cache Implementation
-from fastapi import APIRouter
+# routes/caching.py - Router ile birlikte Redis Cache Implementation
+from fastapi import APIRouter, HTTPException, Depends
 from typing import Any, Optional
 import json
 import hashlib
@@ -7,8 +7,11 @@ from datetime import timedelta
 import redis
 from loguru import logger
 from core.config import settings
+from core.dependencies import get_current_user
+from core.models import UserData
 
-router = APIRouter()  # Bu satır eksikti
+# Router tanımı eklendi
+router = APIRouter()
 
 class CacheService:
     """Redis-based caching service."""
@@ -99,6 +102,7 @@ class CacheService:
                 "used_memory": info.get("used_memory_human", "0B"),
                 "keyspace_hits": info.get("keyspace_hits", 0),
                 "keyspace_misses": info.get("keyspace_misses", 0),
+                "hit_ratio": info.get("keyspace_hits", 0) / max(1, info.get("keyspace_hits", 0) + info.get("keyspace_misses", 0))
             }
         except Exception as e:
             logger.warning(f"Cache stats failed: {e}")
@@ -106,3 +110,53 @@ class CacheService:
 
 # Global cache instance
 cache = CacheService()
+
+# Cache management endpoints
+@router.get("/stats")
+async def get_cache_stats(current_user: UserData = Depends(get_current_user)):
+    """Get cache statistics - Admin only."""
+    return cache.get_stats()
+
+@router.delete("/clear")
+async def clear_cache(
+    pattern: Optional[str] = None,
+    current_user: UserData = Depends(get_current_user)
+):
+    """Clear cache entries - Admin only."""
+    if not cache.enabled:
+        raise HTTPException(status_code=503, detail="Cache not available")
+    
+    try:
+        if pattern:
+            await cache.clear_pattern(pattern)
+            return {"message": f"Cache cleared for pattern: {pattern}"}
+        else:
+            # Clear all app cache
+            await cache.clear_pattern("")
+            return {"message": "All cache cleared"}
+    except Exception as e:
+        logger.error(f"Cache clear failed: {e}")
+        raise HTTPException(status_code=500, detail="Cache clear failed")
+
+@router.post("/warm-up")
+async def warm_up_cache(current_user: UserData = Depends(get_current_user)):
+    """Warm up cache with frequently accessed data."""
+    if not cache.enabled:
+        raise HTTPException(status_code=503, detail="Cache not available")
+    
+    try:
+        # Cache backgrounds
+        from routes.backgrounds import STATIC_BACKGROUNDS
+        await cache.set("backgrounds", STATIC_BACKGROUNDS, ttl_seconds=3600)
+        
+        # Cache user products count
+        user_id = current_user.uid
+        await cache.set("user_product_count", 0, user_id, ttl_seconds=1800)
+        
+        return {
+            "message": "Cache warmed up successfully",
+            "cached_items": ["backgrounds", "user_product_count"]
+        }
+    except Exception as e:
+        logger.error(f"Cache warm-up failed: {e}")
+        raise HTTPException(status_code=500, detail="Cache warm-up failed")

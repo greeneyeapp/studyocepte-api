@@ -2,7 +2,7 @@
 from fastapi import Request, HTTPException, status
 from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.responses import Response
-from security import SecurityService
+from middleware.security import SecurityService  # Düzeltilmiş import path
 
 class RateLimitMiddleware(BaseHTTPMiddleware):
     """Rate limiting middleware."""
@@ -37,7 +37,6 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
         else:
             return 'detail'
 
-# middleware/content_security.py - Content Security Policy
 class ContentSecurityMiddleware(BaseHTTPMiddleware):
     """Add security headers to responses."""
     
