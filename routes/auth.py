@@ -45,7 +45,6 @@ async def register_user(request: RegisterRequest):
             "uid": user_uid,
             "email": request.email,
             "name": request.name,
-            "avatar": f"https://i.pravatar.cc/150?u={request.email}",
             "subscription_plan": "free",
             "hashedPassword": hashed_password
         }
