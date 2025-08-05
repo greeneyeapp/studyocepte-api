@@ -2,3 +2,4 @@ __pycache__
 serviceAccountKey.json
 file.log
 .env
+logs
