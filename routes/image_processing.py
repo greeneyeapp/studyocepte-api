@@ -15,7 +15,6 @@ router = APIRouter()
 REMBG_SESSION = new_session("isnet-general-use")
 
 def apply_mask_to_image(original_bytes: bytes, mask_image: Image.Image) -> bytes:
-    """Görüntüye maskeyi uygular ve PNG olarak döndürür."""
     input_image = Image.open(io.BytesIO(original_bytes))
     if input_image.mode != 'RGBA':
         input_image = input_image.convert('RGBA')
@@ -28,7 +27,6 @@ def apply_mask_to_image(original_bytes: bytes, mask_image: Image.Image) -> bytes
     return output_buffer.getvalue()
 
 async def process_single_image(file: UploadFile) -> bytes:
-    """Tek bir resmi işleyen ve byte dizisini döndüren asenkron fonksiyon."""
     logger.info(f"İşleniyor: {file.filename}")
     input_image_bytes = await file.read()
     
@@ -55,7 +53,6 @@ async def process_single_image(file: UploadFile) -> bytes:
 
 @router.post("/remove-background/batch/")
 async def remove_background_batch(files: List[UploadFile] = File(...)):
-    """Birden fazla fotoğrafın arka planını temizler ve base64 olarak döndürür."""
     if not files:
         raise HTTPException(status_code=400, detail="İşlenecek dosya bulunamadı.")
         
