@@ -49,7 +49,7 @@ class APILogger:
         # File logger - General
         logger.add(
             "logs/app_{time:YYYY-MM-DD}.log",
-            format="{time:YYYY-MM-DD HH:mm:ss} | {level: <8} | {name}:{function}:{line} | {extra[request_id]} | {message}",
+            format="{time:YYYY-MM-DD HH:mm:ss} | {level: <8} | {name}:{function}:{line} | {extra.get('request_id', 'no-id')} | {message}",
             level="INFO",
             rotation="00:00",
             retention="30 days",
@@ -60,7 +60,7 @@ class APILogger:
         # File logger - Errors only
         logger.add(
             "logs/errors_{time:YYYY-MM-DD}.log",
-            format="{time:YYYY-MM-DD HH:mm:ss} | {level: <8} | {name}:{function}:{line} | {extra[request_id]} | {extra[user_id]} | {extra[error_category]} | {message}",
+            format="{time:YYYY-MM-DD HH:mm:ss} | {level: <8} | {name}:{function}:{line} | {extra.get('request_id', 'no-id')} | {extra.get('user_id', 'no-user')} | {extra.get('error_category', 'no-category')} | {message}",
             level="ERROR",
             rotation="00:00",
             retention="90 days",
@@ -71,7 +71,7 @@ class APILogger:
         # File logger - Security events
         logger.add(
             "logs/security_{time:YYYY-MM-DD}.log",
-            format="{time:YYYY-MM-DD HH:mm:ss} | {level: <8} | {extra[client_ip]} | {extra[user_agent]} | {extra[request_id]} | {extra[user_id]} | {message}",
+            format="{time:YYYY-MM-DD HH:mm:ss} | {level: <8} | {extra.get('client_ip', 'no-ip')} | {extra.get('user_agent', 'no-agent')} | {extra.get('request_id', 'no-id')} | {extra.get('user_id', 'no-user')} | {message}",
             level="WARNING",
             rotation="00:00",
             retention="365 days",
@@ -338,9 +338,9 @@ def error_context(
         if request:
             api_logger.log_request(request, request_id, user_id)
         
-        logger.bind(request_id=request_id, user_id=user_id).info(f"Starting {operation}")
+        logger.bind(request_id=request_id, user_id=user_id or "anonymous").info(f"Starting {operation}")
         yield request_id
-        logger.bind(request_id=request_id, user_id=user_id).info(f"Completed {operation}")
+        logger.bind(request_id=request_id, user_id=user_id or "anonymous").info(f"Completed {operation}")
         
     except Exception as e:
         api_logger.log_error(

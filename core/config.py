@@ -10,8 +10,8 @@ class Settings:
     ACCESS_TOKEN_EXPIRE_MINUTES: int = int(os.getenv("ACCESS_TOKEN_EXPIRE_MINUTES", 60))
 
     # --- Güvenlik ---
-    # Rate limit, dosya boyutu gibi ayarlar /image endpoint'i için hala geçerli olabilir.
-    MAX_REQUESTS_PER_MINUTE: int = int(os.getenv("MAX_REQUESTS_PER_MINUTE", 60))
+    # Rate limit artırıldı - önceki değer çok düşüktü
+    MAX_REQUESTS_PER_MINUTE: int = int(os.getenv("MAX_REQUESTS_PER_MINUTE", 180))  # 60'tan 180'e çıkarıldı
     MAX_FILE_SIZE_MB: int = int(os.getenv("MAX_FILE_SIZE_MB", 25)) # Boyutu düşürebiliriz.
 
 settings = Settings()

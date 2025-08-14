@@ -22,11 +22,12 @@ class SecurityService:
         self.allowed_image_types = {
             'image/jpeg', 'image/png', 'image/webp', 'image/bmp', 'image/tiff'
         }
+        # GÜNCELLENEN RATE LIMIT DEĞERLERİ - Önceki değerler çok düşüktü
         self.max_requests_per_minute = {
-            'upload': 10,
-            'process': 5,
-            'list': 60,
-            'detail': 30
+            'upload': 50,      # 10'dan 50'ye çıkarıldı
+            'process': 30,     # 5'ten 30'a çıkarıldı  
+            'list': 200,       # 60'tan 200'e çıkarıldı
+            'detail': 120      # 30'dan 120'ye çıkarıldı
         }
         self.blocked_ips = set()
         self.suspicious_patterns = [
@@ -60,7 +61,7 @@ class SecurityService:
             return True
         
         current_time = time.time()
-        limit = self.max_requests_per_minute.get(endpoint_type, 30)
+        limit = self.max_requests_per_minute.get(endpoint_type, 100)  # Default limit da artırıldı
         
         # Clean old entries (older than 1 minute)
         while (rate_limit_storage[client_ip] and 
@@ -92,8 +93,8 @@ class SecurityService:
             if current_time - attempt['timestamp'] < timedelta(hours=1)
         ]
         
-        # Block IP if too many failed attempts
-        if len(failed_attempts[client_ip]) > 20:
+        # IP engelleme eşiği de artırıldı (20'den 50'ye)
+        if len(failed_attempts[client_ip]) > 50:
             self.blocked_ips.add(client_ip)
             logger.error(f"IP {client_ip} blocked due to suspicious activity")
     
