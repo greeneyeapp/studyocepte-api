@@ -1,4 +1,4 @@
-# core/logging_system.py - Gelişmiş logging ve hata yönetimi
+# core/logging_system.py - Minimal logging (sadece ERROR seviyesi)
 import json
 import traceback
 from datetime import datetime
@@ -30,54 +30,31 @@ class ErrorCategory:
     NETWORK = "NETWORK"
 
 class APILogger:
-    """API için özelleştirilmiş logger sınıfı"""
+    """API için minimal logger sınıfı - sadece ERROR seviyesi"""
     
     def __init__(self):
         self.setup_logger()
     
     def setup_logger(self):
-        """Logger yapılandırması"""
+        """Minimal logger yapılandırması - sadece ERROR seviyesi"""
         logger.remove()  # Varsayılan logger'ı kaldır
         
-        # Console logger
+        # Console logger - sadece ERROR seviyesi
         logger.add(
             sink=lambda msg: print(msg, end=""),
-            format="<green>{time:YYYY-MM-DD HH:mm:ss}</green> | <level>{level: <8}</level> | <cyan>{name}</cyan>:<cyan>{function}</cyan>:<cyan>{line}</cyan> - <level>{message}</level>",
-            level="INFO"
+            format="<red>{time:YYYY-MM-DD HH:mm:ss}</red> | <level>{level: <8}</level> | <red>{message}</red>",
+            level="ERROR"
         )
         
-        # File logger - General
-        logger.add(
-            "logs/app_{time:YYYY-MM-DD}.log",
-            format="{time:YYYY-MM-DD HH:mm:ss} | {level: <8} | {name}:{function}:{line} | {extra.get('request_id', 'no-id')} | {message}",
-            level="INFO",
-            rotation="00:00",
-            retention="30 days",
-            compression="zip",
-            serialize=False
-        )
-        
-        # File logger - Errors only
+        # File logger - sadece ERROR seviyesi
         logger.add(
             "logs/errors_{time:YYYY-MM-DD}.log",
             format="{time:YYYY-MM-DD HH:mm:ss} | {level: <8} | {name}:{function}:{line} | {extra.get('request_id', 'no-id')} | {extra.get('user_id', 'no-user')} | {extra.get('error_category', 'no-category')} | {message}",
             level="ERROR",
             rotation="00:00",
-            retention="90 days",
+            retention="30 days",
             compression="zip",
             serialize=True
-        )
-        
-        # File logger - Security events
-        logger.add(
-            "logs/security_{time:YYYY-MM-DD}.log",
-            format="{time:YYYY-MM-DD HH:mm:ss} | {level: <8} | {extra.get('client_ip', 'no-ip')} | {extra.get('user_agent', 'no-agent')} | {extra.get('request_id', 'no-id')} | {extra.get('user_id', 'no-user')} | {message}",
-            level="WARNING",
-            rotation="00:00",
-            retention="365 days",
-            compression="zip",
-            serialize=True,
-            filter=lambda record: record["extra"].get("security_event", False)
         )
     
     def get_client_info(self, request: Request) -> Dict[str, str]:
@@ -103,23 +80,12 @@ class APILogger:
         return request.client.host if request.client else '127.0.0.1'
     
     def log_request(self, request: Request, request_id: str, user_id: Optional[str] = None):
-        """İstek loglaması"""
-        client_info = self.get_client_info(request)
-        
-        logger.bind(
-            request_id=request_id,
-            user_id=user_id or "anonymous",
-            **client_info
-        ).info(f"Request started: {request.method} {request.url.path}")
+        """İstek loglaması - devre dışı (sadece ERROR seviyesi)"""
+        pass  # INFO seviyesi olduğu için log yazılmayacak
     
     def log_response(self, request: Request, request_id: str, status_code: int, response_time: float, user_id: Optional[str] = None):
-        """Yanıt loglaması"""
-        logger.bind(
-            request_id=request_id,
-            user_id=user_id or "anonymous",
-            status_code=status_code,
-            response_time=response_time
-        ).info(f"Request completed: {request.method} {request.url.path} - {status_code} - {response_time:.3f}s")
+        """Yanıt loglaması - devre dışı (sadece ERROR seviyesi)"""
+        pass  # INFO seviyesi olduğu için log yazılmayacak
     
     def log_error(
         self, 
@@ -130,7 +96,7 @@ class APILogger:
         user_id: Optional[str] = None,
         additional_context: Optional[Dict[str, Any]] = None
     ):
-        """Hata loglaması"""
+        """Hata loglaması - sadece bu fonksiyon çalışacak"""
         error_context = {
             "request_id": request_id or str(uuid.uuid4()),
             "user_id": user_id or "anonymous",
@@ -156,7 +122,7 @@ class APILogger:
         user_id: Optional[str] = None,
         details: Optional[Dict[str, Any]] = None
     ):
-        """Güvenlik olayı loglaması"""
+        """Güvenlik olayı loglaması - sadece ciddi güvenlik ihlalleri"""
         client_info = self.get_client_info(request)
         
         security_context = {
@@ -170,7 +136,9 @@ class APILogger:
         if details:
             security_context.update(details)
         
-        logger.bind(**security_context).warning(f"Security event: {event_type}")
+        # Sadece kritik güvenlik olayları için ERROR seviyesinde log
+        if event_type in ["rate_limit_exceeded", "suspicious_activity", "blocked_ip"]:
+            logger.bind(**security_context).error(f"Security violation: {event_type}")
     
     def log_auth_event(
         self,
@@ -181,18 +149,18 @@ class APILogger:
         email: Optional[str] = None,
         success: bool = True
     ):
-        """Kimlik doğrulama olayı loglaması"""
-        auth_context = {
-            "request_id": request_id,
-            "user_id": user_id or "anonymous",
-            "email": email or "unknown",
-            "auth_event": True,
-            "auth_success": success,
-            **self.get_client_info(request)
-        }
-        
-        level = "info" if success else "warning"
-        getattr(logger.bind(**auth_context), level)(f"Auth event: {event_type}")
+        """Kimlik doğrulama olayı loglaması - sadece başarısız girişler"""
+        if not success:  # Sadece başarısız auth olayları
+            auth_context = {
+                "request_id": request_id,
+                "user_id": user_id or "anonymous",
+                "email": email or "unknown",
+                "auth_event": True,
+                "auth_success": success,
+                **self.get_client_info(request)
+            }
+            
+            logger.bind(**auth_context).error(f"Auth failed: {event_type}")
 
 # Global logger instance
 api_logger = APILogger()
@@ -291,20 +259,15 @@ def log_and_handle_error(
                     user_id = arg.uid
             
             try:
-                if request:
-                    api_logger.log_request(request, request_id, user_id)
-                
+                # Request loglaması devre dışı (INFO seviyesi)
                 result = await func(*args, **kwargs)
-                
-                if request:
-                    api_logger.log_response(request, request_id, 200, 0.0, user_id)
-                
+                # Response loglaması devre dışı (INFO seviyesi)
                 return result
                 
             except HTTPException:
                 raise  # HTTPException'ları yeniden fırlat
             except Exception as e:
-                # Hata logla
+                # Sadece ERROR seviyesi - bu çalışacak
                 api_logger.log_error(
                     error=e,
                     category=category,
@@ -335,14 +298,13 @@ def error_context(
     request_id = str(uuid.uuid4())
     
     try:
-        if request:
-            api_logger.log_request(request, request_id, user_id)
-        
-        logger.bind(request_id=request_id, user_id=user_id or "anonymous").info(f"Starting {operation}")
+        # Request loglaması devre dışı (INFO seviyesi)
+        # Operation başlangıç loglaması devre dışı (INFO seviyesi)
         yield request_id
-        logger.bind(request_id=request_id, user_id=user_id or "anonymous").info(f"Completed {operation}")
+        # Operation tamamlanma loglaması devre dışı (INFO seviyesi)
         
     except Exception as e:
+        # Sadece ERROR seviyesi - bu çalışacak
         api_logger.log_error(
             error=e,
             category=category,
