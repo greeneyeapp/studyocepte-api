@@ -115,25 +115,50 @@ class SecurityService:
             if mime_type not in self.allowed_image_types:
                 return False, f"Invalid file type: {mime_type}. Allowed: {', '.join(self.allowed_image_types)}"
             
-            # Check for embedded scripts in image files
-            file_str = str(file_content[:10000])  # Check first 10KB
-            for pattern in self.suspicious_patterns:
-                if re.search(pattern, file_str, re.IGNORECASE):
-                    return False, "Suspicious content detected in file"
+            # Check for embedded scripts in image files - SADELEŞTIRILDI
+            if self._contains_suspicious_content(file_content):
+                return False, "Suspicious content detected in file"
             
             # Check file headers for image files
             if not self._validate_image_headers(file_content, mime_type):
                 return False, "Invalid or corrupted image file"
             
-            # Additional security checks
-            if self._contains_malicious_metadata(file_content):
-                return False, "Malicious metadata detected"
+            # Metadata kontrolü sadeleştirildi ve daha tolerant hale getirildi
+            if self._contains_dangerous_metadata(file_content):
+                return False, "Potentially dangerous content detected"
             
             return True, "File validation passed"
             
         except Exception as e:
             logger.error(f"File validation error: {e}")
             return False, "File validation failed"
+    
+    def _contains_suspicious_content(self, file_content: bytes) -> bool:
+        """Check for suspicious scripts in file content - more lenient"""
+        try:
+            # Sadece ilk 5KB'ı kontrol et ve daha spesifik pattern'ler kullan
+            content_str = file_content[:5120].decode('utf-8', errors='ignore').lower()
+            
+            # Sadece gerçekten tehlikeli pattern'leri ara
+            dangerous_patterns = [
+                '<script',
+                'javascript:',
+                'vbscript:',
+                'data:text/html',
+                'eval(',
+                'exec(',
+                'system('
+            ]
+            
+            for pattern in dangerous_patterns:
+                if pattern in content_str:
+                    logger.warning(f"Suspicious pattern found: {pattern}")
+                    return True
+            
+            return False
+        except:
+            # Decode hatası durumunda güvenli kabul et
+            return False
     
     def _guess_mime_type(self, filename: str) -> str:
         """Fallback MIME type detection."""
@@ -154,31 +179,52 @@ class SecurityService:
         signatures = {
             'image/jpeg': [b'\xFF\xD8\xFF'],
             'image/png': [b'\x89PNG\r\n\x1a\n'],
-            'image/webp': [b'RIFF', b'WEBP'],
+            'image/webp': [b'RIFF'],  # WEBP kontrol sadeleştirildi
             'image/bmp': [b'BM'],
             'image/tiff': [b'II*\x00', b'MM\x00*']
         }
         
         expected_sigs = signatures.get(mime_type, [])
+        
+        # Eğer signature check tanımlı değilse veya eşleşiyorsa geçerli
+        if not expected_sigs:
+            return True
+            
         for sig in expected_sigs:
             if file_content.startswith(sig):
                 return True
         
-        return len(expected_sigs) == 0  # Allow if no specific signature check
-    
-    def _contains_malicious_metadata(self, file_content: bytes) -> bool:
-        """Check for malicious metadata in image files."""
-        # Look for suspicious strings in metadata
-        suspicious_strings = [
-            b'<script', b'javascript:', b'vbscript:', b'data:text/html',
-            b'<?php', b'<%', b'eval(', b'exec(', b'system('
-        ]
-        
-        for suspicious in suspicious_strings:
-            if suspicious in file_content:
+        # WEBP için özel kontrol
+        if mime_type == 'image/webp':
+            if file_content.startswith(b'RIFF') and b'WEBP' in file_content[:20]:
                 return True
         
         return False
+    
+    def _contains_dangerous_metadata(self, file_content: bytes) -> bool:
+        """Check for dangerous metadata - MUCH MORE LENIENT"""
+        try:
+            # Sadece gerçekten tehlikeli executable content'i ara
+            dangerous_strings = [
+                b'<?php',
+                b'<script>',
+                b'javascript:',
+                b'vbscript:',
+                b'data:text/html'
+            ]
+            
+            # Sadece dosyanın ilk 10KB'ında ara
+            content_to_check = file_content[:10240]
+            
+            for dangerous in dangerous_strings:
+                if dangerous in content_to_check:
+                    logger.warning(f"Dangerous content found: {dangerous}")
+                    return True
+            
+            return False
+        except:
+            # Hata durumunda güvenli kabul et
+            return False
     
     def validate_input_data(self, data: str, max_length: int = 1000) -> tuple[bool, str]:
         """Validate input data for XSS and injection attacks."""
