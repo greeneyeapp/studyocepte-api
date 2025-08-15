@@ -1,4 +1,4 @@
-# core/logging_system.py - Minimal logging (sadece ERROR seviyesi)
+# core/logging_system.py - Fixed logging system
 import json
 import traceback
 from datetime import datetime
@@ -46,16 +46,28 @@ class APILogger:
             level="ERROR"
         )
         
-        # File logger - sadece ERROR seviyesi
+        # File logger - sadece ERROR seviyesi - FİX: Doğru format
         logger.add(
             "logs/errors_{time:YYYY-MM-DD}.log",
-            format="{time:YYYY-MM-DD HH:mm:ss} | {level: <8} | {name}:{function}:{line} | {extra.get('request_id', 'no-id')} | {extra.get('user_id', 'no-user')} | {extra.get('error_category', 'no-category')} | {message}",
+            format="{time:YYYY-MM-DD HH:mm:ss} | {level: <8} | {name}:{function}:{line} | {extra[request_id]} | {extra[user_id]} | {extra[error_category]} | {message}",
             level="ERROR",
             rotation="00:00",
             retention="30 days",
             compression="zip",
-            serialize=True
+            serialize=True,
+            filter=self._error_filter
         )
+    
+    def _error_filter(self, record):
+        """Error filter for ensuring required extra fields exist"""
+        # Varsayılan değerleri ayarla
+        if 'request_id' not in record['extra']:
+            record['extra']['request_id'] = 'no-id'
+        if 'user_id' not in record['extra']:
+            record['extra']['user_id'] = 'no-user'
+        if 'error_category' not in record['extra']:
+            record['extra']['error_category'] = 'no-category'
+        return True
     
     def get_client_info(self, request: Request) -> Dict[str, str]:
         """İstek bilgilerini çıkarır"""
@@ -128,6 +140,7 @@ class APILogger:
         security_context = {
             "request_id": request_id,
             "user_id": user_id or "anonymous",
+            "error_category": "SECURITY",  # security_event yerine error_category
             "security_event": True,
             "event_type": event_type,
             **client_info
@@ -154,6 +167,7 @@ class APILogger:
             auth_context = {
                 "request_id": request_id,
                 "user_id": user_id or "anonymous",
+                "error_category": "AUTH",  # auth_event yerine error_category
                 "email": email or "unknown",
                 "auth_event": True,
                 "auth_success": success,
